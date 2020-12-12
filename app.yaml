@@ -1,0 +1,104 @@
+# App Playbook 
+
+---
+- name: provision app
+  hosts: host_a
+  gather_facts: yes
+  become: True
+  vars:
+    ip_db:
+      DB_HOST: 123.121.321.1
+
+  environment: "{{ip_db}}"
+  tasks:
+    - name: apt update and upgrade
+      apt:
+        upgrade: "yes"
+        update_cache: "yes"
+        cache_valid_time: 86400
+
+    - name: install python
+      apt: pkg=python state=latest
+
+    - name: install curl
+      apt: pkg=curl state=present
+
+    - name: add apt key for nodesource
+      apt_key: url=https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+
+    - name: install nodejs
+      apt: name=nodejs
+
+    - name: install npm
+      apt: name=npm state=present
+
+    - name: install git
+      apt: pkg=git state=present
+
+    - name: install nginx
+      apt: name=nginx state=present
+      notify:
+       - Start nginx
+
+
+    - name: Install pm2
+      npm:
+        name: pm2
+        global: yes
+
+    - name: Copy app files
+      copy:
+        src: /home/ubuntu/app
+        dest: /home/ubuntu/app
+        force: no
+
+    - name: remove nginx default file
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: create config file
+      file:
+        path: /etc/nginx/sites-available/custom_server.conf
+        state: touch
+        mode: 666
+
+    - name: Creating a file with content
+      copy:
+        dest: "/etc/nginx/sites-available/custom_server.conf"
+        content: |
+          server {
+          listen 80;
+          location / {
+          proxy_pass http://127.0.0.1:3000;
+          }
+          }
+
+    - name: Create a symbolic link between sites enabled and sites available
+      file:
+        src: /etc/nginx/sites-available/custom_server.conf
+        dest: /etc/nginx/sites-enabled/custom_server.conf
+        state: link
+      notify:
+      -  Restart nginx
+
+    - name: run npm install
+      become: yes
+      shell:
+        chdir: /home/ubuntu/app/app
+        cmd: npm install
+
+    - name: Start APP
+      become_user: ubuntu
+      command: pm2 restart app.js --name app chdir=/home/ubuntu/app/app
+      ignore_errors: yes
+
+  handlers:
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted

@@ -1,0 +1,49 @@
+# DB Playbook
+---
+- name: provision db
+  hosts: host_db
+  gather_facts: yes
+  become: True
+
+  tasks:
+    - name: apt update and upgrade
+      apt:
+        upgrade: "yes"
+        update_cache: "yes"
+        cache_valid_time: 86400
+
+    - name: MongoDB - Import public key used by package management system
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-3.2.asc
+        state: present
+
+    - name: Add repository
+      become: True
+      apt_repository:
+        filename: '/etc/apt/sources.list.d/mongodb-org-3.2.list'
+        repo: 'deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse'
+        state: present
+        update_cache: "yes"
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb-org
+        state: present
+        update_cache: "yes"
+      notify:
+      - start mongod
+
+       - name: set db host as global variable
+      become: true
+      shell: |
+        sudo sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
+      args:
+        chdir: /etc
+      notify:
+      - restart mongod
+
+  handlers:
+    - name: start mongod
+      service: name=mongod state=started
+    - name: restart mongod
+      service: name=mongod state=restarted

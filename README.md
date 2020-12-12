@@ -13,7 +13,7 @@ app_private_ip ansible_connection=ssh ansible_ssh_private_key_file=/home/ubuntu/
 [host_db]
 db_private_ip ansible_connection=ssh ansible_ssh_private_key_file=/home/ubuntu/.ssh/key_name.pem
 ```
-4. Create a directory for playbooks. Within here, create an app.yaml and db.yaml file. 
+4. Create a directory for playbooks. Within here, create an app.yaml and db.yaml file.
 
 ### Installations and Tasks for App
 * [**App Playbook**](https://github.com/A-Ahmed100216/Ansible_app_deploy/blob/main/app.yaml)
@@ -183,7 +183,7 @@ args:
 notify:
 - restart mongod
 ```
-3. Run the plabooks using the commands below:
+5. Run the plabooks using the commands below:
 ```
 ansible-playbook app.yaml
 ansible-playbook db.yaml

@@ -1,4 +1,4 @@
-# App Playbook 
+# App Playbook
 
 ---
 - name: provision app
@@ -6,10 +6,8 @@
   gather_facts: yes
   become: True
   vars:
-    ip_db:
-      DB_HOST: 123.121.321.1
+    DB_HOST: db_private_ip
 
-  environment: "{{ip_db}}"
   tasks:
     - name: apt update and upgrade
       apt:
@@ -39,7 +37,6 @@
       apt: name=nginx state=present
       notify:
        - Start nginx
-
 
     - name: Install pm2
       npm:
@@ -87,6 +84,15 @@
       shell:
         chdir: /home/ubuntu/app/app
         cmd: npm install
+
+    - name: set db host as global variable
+      become: true
+      shell: |
+        export DB_HOST={{ DB_HOST }}
+        sed -i '/export DB_HOST=/d' .bashrc
+        printf '\nexport DB_HOST={{ DB_HOST }}' >> .bashrc
+      args:
+        chdir: /home/ubuntu
 
     - name: Start APP
       become_user: ubuntu

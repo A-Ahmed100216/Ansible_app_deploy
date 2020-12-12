@@ -2,9 +2,21 @@
 
 1. Create host instances for the app and database.
 2. Configure the security groups of these hosts to accept traffic from the controller. Additionally, the database should be open to the app server.
+3. Connect to the controller and instance and navigate to hosts. Add the app and db as hosts in the inventory.
+```
+cd /etc/ansible
+sudo nano hosts
+
+[host_app]
+app_private_ip ansible_connection=ssh ansible_ssh_private_key_file=/home/ubuntu/.ssh/key_name.pem
+
+[host_db]
+db_private_ip ansible_connection=ssh ansible_ssh_private_key_file=/home/ubuntu/.ssh/key_name.pem
+```
+4. Create a directory for playbooks. Within here, create an app.yaml and db.yaml file. 
 
 ### Installations and Tasks for App
-* [**App Playbook**](https://github.com/A-Ahmed100216/Ansible/blob/main/app.yaml)
+* [**App Playbook**](https://github.com/A-Ahmed100216/Ansible_app_deploy/blob/main/app.yaml)
 * Install git
 ```YAML
 - name: install git
@@ -104,6 +116,19 @@
     cmd: npm install
 ```
 
+* Configure DB_HOST. This is achived using shell commands.  
+```YAML
+- name: set db host as global variable
+    become: true
+    shell: |
+      export DB_HOST={{ DB_HOST }}
+      sed -i '/export DB_HOST=/d' .bashrc
+      printf '\nexport DB_HOST={{ DB_HOST }}' >> .bashrc
+    args:
+      chdir: /home/ubuntu
+```
+
+
 * Start the app
 ```YAML
 - name: Start APP
@@ -113,7 +138,7 @@
 ```
 
 ## Installations and Tasks for DB
-* [**DB Playbook**](https://github.com/A-Ahmed100216/Ansible/blob/main/db.yaml)
+* [**DB Playbook**](https://github.com/A-Ahmed100216/Ansible_app_deploy/blob/main/db.yaml)
 * Run updates of source lists
 ```YAML
 - name: apt update and upgrade
@@ -157,4 +182,9 @@ args:
  chdir: /etc
 notify:
 - restart mongod
+```
+3. Run the plabooks using the commands below:
+```
+ansible-playbook app.yaml
+ansible-playbook db.yaml
 ```
